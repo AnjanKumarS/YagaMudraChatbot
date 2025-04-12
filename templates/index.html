@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mudra Voice Assistant</title>
+    <style>
+        body {
+    font-family: 'Poppins', sans-serif;
+    background: #ffffff; /* Light background for chat area */
+    color: #000000; /* Dark text color */
+    text-align: center;
+    padding: 30px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+h2 {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+input {
+    width: 70%;
+    max-width: 400px;
+    padding: 12px;
+    font-size: 16px;
+    border: none;
+    border-radius: 25px;
+    outline: none;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+button {
+    background: linear-gradient(to right, #25d366, #dcf8c6); /* WhatsApp style gradient */
+    border: none;
+    padding: 12px 20px;
+    margin-top: 10px;
+    font-size: 16px;
+    color: #fff;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+    transform: scale(1.05);
+    background: linear-gradient(to right, #dcf8c6, #25d366); /* Reverse gradient on hover */
+}
+
+#mudraDetails {
+    background: rgba(220, 248, 198, 0.8); /* Light green background for details */
+    padding: 20px;
+    border-radius: 15px;
+    margin-top: 20px;
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+    width: 80%;
+    max-width: 500px;
+    text-align: left;
+}
+
+h3 {
+    font-size: 22px;
+    margin-bottom: 10px;
+    color: #25d366; /* Darker green for headings */
+}
+
+p {
+    font-size: 16px;
+    margin: 5px 0;
+}
+
+@media (max-width: 600px) {
+    input {
+        width: 90%;
+    }
+    button {
+        width: 90%;
+    }
+    #mudraDetails {
+        width: 90%;
+    }
+}
+    </style>
+</head>
+
+<body>
+    <h2>Mudra Chat & Voice Assistant</h2>
+
+    <!-- Text Input for Mudra -->
+    <input type="text" id="mudraInput" placeholder="Enter Mudra Name">
+    <button onclick="fetchMudraInfo(false)">Get Mudra Info</button>
+
+    <!-- Voice Input Button -->
+    <button onclick="startVoiceRecognition()">🎤 Voice Assistant</button>
+
+    <div id="mudraDetails"></div>
+
+    <script>
+        function fetchMudraInfo(isVoice) {
+            let mudraName = document.getElementById("mudraInput").value;
+            if (!mudraName) return;
+
+            fetch("/get_mudra", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mudra_name: mudraName, is_voice: isVoice })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        let mudraText = `
+                        <h3>${data.sanskrit_name} Mudra</h3>
+                        <p><strong>Alternative Name:</strong> ${data.alternative_name}</p>
+                        <p><strong>Type:</strong> ${data.type}</p>
+                        <p><strong>Benefits:</strong> ${data.benefits}</p>
+                        <p><strong>Procedure:</strong> ${data.procedure}</p>
+                        <p><strong>Dos:</strong> ${data.dos}</p>
+                        <p><strong>Don'ts:</strong> ${data.donts}</p>
+                        <p><strong>Cures:</strong> ${data.cures}</p>
+                        <p><strong>Time:</strong> ${data.time}</p>
+                        <p><strong>Frequency:</strong> ${data.frequency}</p>
+                    `;
+                        document.getElementById("mudraDetails").innerHTML = mudraText;
+
+                        // If the request is from voice, speak the content
+                        if (isVoice) {
+                            let speech = new SpeechSynthesisUtterance();
+                            speech.text = `${data.sanskrit_name} Mudra. Also known as ${data.alternative_name}. 
+                        This is a ${data.type}. Benefits include ${data.benefits}. 
+                        To perform it: ${data.procedure}. Recommended duration: ${data.time}, Frequency: ${data.frequency}.`;
+                            window.speechSynthesis.speak(speech);
+                        }
+                    } else {
+                        document.getElementById("mudraDetails").innerHTML = `<p style="color:red;">${data.message}</p>`;
+                    }
+                });
+        }
+
+        function startVoiceRecognition() {
+            let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = "en-US";
+            recognition.start();
+
+            recognition.onresult = function (event) {
+                let voiceText = event.results[0][0].transcript;
+                document.getElementById("mudraInput").value = voiceText;  // Display recognized text
+                fetchMudraInfo(true);  // Fetch mudra details with voice mode enabled
+            };
+        }
+    </script>
+</body>
+
+</html>
